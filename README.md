@@ -13,25 +13,32 @@ The three logic gates are represented like so:
 
 You can make extra things from these commands, like circuits and variables.
 
+##Make-your-own Things
+
+###Circuits
 To create a circuit, you have to do this:
 
 `circ circuit_name(arg1, arg2...)->{what the function does}`
 
 `circ` is the circuit "declaration", and everything after the `->` is interpreted as code.
 
+###Variables
 To create a variable:
 
 `var var_name=value`
 
 `var` is the variable declaration.
 
+##I/O
+
+###Output
 There is also output as well:
 
 `out out_value`
 
 `out` is the output declaration, and you can include the built-in commands, as well as self-made circuits, into the output to be processed.
 
-Example code:
+###Example code:
 
     circ xor(a,b)->(!(a&b))&(a?b)
     var test=xor(1,1)
