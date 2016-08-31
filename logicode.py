@@ -41,10 +41,12 @@ def parse_circ(string):
                     index += 1
 
                 out_args = out_code[circ_find_char + len(circuits[a][0]) + 1:index - 1].split(",")
+                for b in range(len(out_args)):
+                    out_args[b] = "(" + out_args[b] + ")"
                 circ_co_ords = [circ_find_char, index]
                 temp = circuits[a][2]
-                for b in range(len(circuits[a][1])):
-                    temp = temp.replace(circuits[a][1][b], out_args[b])
+                for c in range(len(circuits[a][1])):
+                    temp = temp.replace(circuits[a][1][c], out_args[c])
         out_code = out_code[:circ_co_ords[0]] + temp + out_code[circ_co_ords[1]:]
     return out_code
 
@@ -55,23 +57,23 @@ def lgc_process(index):
 
         # Looking for variables
         while any(x in raw_code for x in variables):
-            for c in variables:
-                if c in raw_code:
-                    var_co_ords = raw_code.find(c)
-                    raw_code = raw_code[:var_co_ords] + str(variables[c]) + raw_code[var_co_ords + len(c):]
+            for d in variables:
+                if d in raw_code:
+                    var_co_ords = raw_code.find(d)
+                    raw_code = raw_code[:var_co_ords] + str(variables[d]) + raw_code[var_co_ords + len(d):]
 
         # Looking for circuits
         raw_code = parse_circ(raw_code)
-        for d in replace_dict:
-            raw_code = raw_code.replace(d, replace_dict[d])
+        for e in replace_dict:
+            raw_code = raw_code.replace(e, replace_dict[e])
         output.append(str(int(eval(raw_code))))
 
     # Variables
     elif code[index][:3] == "var":
         var_info = code[index][4:].split("=")
         var_info[1] = parse_circ(var_info[1])
-        for e in replace_dict:
-            var_info[1] = var_info[1].replace(e, replace_dict[e])
+        for f in replace_dict:
+            var_info[1] = var_info[1].replace(f, replace_dict[f])
         variables[var_info[0]] = int(eval(var_info[1]))
 
     # Circuits
@@ -84,7 +86,7 @@ def lgc_process(index):
         circuits.append([circuit_name, args, split_code[1]])
         circuit_names.append(circuit_name)
 
-for f in range(len(code)):
-    lgc_process(f)
+for g in range(len(code)):
+    lgc_process(g)
 
 print("".join(output))
