@@ -38,7 +38,7 @@ There is also output as well:
 
 `out` is the output declaration, and you can include the built-in commands, as well as self-made circuits, into the output to be processed.
 
-###Example code:
+##Example code:
 
     circ xor(a,b)->(!(a&b))&(a?b)
     var test=xor(1,1)
