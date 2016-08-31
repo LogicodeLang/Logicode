@@ -13,10 +13,10 @@ except IOError:
 # Initialising variables
 code = (logicode_file.read()).split("\n")
 
-functions = []
-function_names = []
+circuits = []
+circuit_names = []
 
-replace_dict = {"&": " and ", "!": "not ", "?": " or "}
+replace_dict = {"&": " and ", "!": " not ", "?": " or "}
 
 variables = {}
 
@@ -24,18 +24,28 @@ output = []
 
 def parse_circ(string):
     out_code = string
-    while any(x in out_code for x in function_names):
-        temp = string
-        for a in range(len(functions)):
-            global func_co_ords
-            if functions[a][0] in string:
-                func_find_char = string.find(functions[a][0])
-                out_args = string[func_find_char + len(functions[a][0]) + 1:].strip(")").split(",")
-                func_co_ords = [func_find_char, string.find(")", func_find_char)]
-                temp = functions[a][2]
-                for b in range(len(functions[a][1])):
-                    temp = temp.replace(functions[a][1][b], out_args[b])
-        out_code = string[:func_co_ords[0]] + temp + string[func_co_ords[1] + 1:]
+    while any(x in out_code for x in circuit_names):
+        temp = out_code
+        for a in range(len(circuits)):
+            if circuits[a][0] in out_code:
+                circ_find_char = out_code.find(circuits[a][0])
+
+                # Bracket matching checker
+                index = circ_find_char + len(circuits[a][0]) + 1
+                brace_check = 1
+                while brace_check != 0:
+                    if out_code[index] == "(":
+                        brace_check += 1
+                    elif out_code[index] == ")":
+                        brace_check -= 1
+                    index += 1
+
+                out_args = out_code[circ_find_char + len(circuits[a][0]) + 1:index - 1].split(",")
+                circ_co_ords = [circ_find_char, index]
+                temp = circuits[a][2]
+                for b in range(len(circuits[a][1])):
+                    temp = temp.replace(circuits[a][1][b], out_args[b])
+        out_code = out_code[:circ_co_ords[0]] + temp + out_code[circ_co_ords[1]:]
     return out_code
 
 def lgc_process(index):
@@ -50,12 +60,13 @@ def lgc_process(index):
                     var_co_ords = raw_code.find(c)
                     raw_code = raw_code[:var_co_ords] + str(variables[c]) + raw_code[var_co_ords + len(c):]
 
-        # Looking for functions
+        # Looking for circuits
         raw_code = parse_circ(raw_code)
         for d in replace_dict:
             raw_code = raw_code.replace(d, replace_dict[d])
         output.append(str(int(eval(raw_code))))
 
+    # Variables
     elif code[index][:3] == "var":
         var_info = code[index][4:].split("=")
         var_info[1] = parse_circ(var_info[1])
@@ -67,10 +78,11 @@ def lgc_process(index):
     elif code[index][:4] == "circ":
         split_code = code[index].split("->")
         split_code[0] = split_code[0][5:-1].split("(")
-        function_name = split_code[0][0]
+        split_code[1] = parse_circ(split_code[1])
+        circuit_name = split_code[0][0]
         args = split_code[0][1].split(",")
-        functions.append([function_name, args, split_code[1]])
-        function_names.append(function_name)
+        circuits.append([circuit_name, args, split_code[1]])
+        circuit_names.append(circuit_name)
 
 for f in range(len(code)):
     lgc_process(f)
