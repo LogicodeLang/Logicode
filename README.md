@@ -7,9 +7,9 @@ Because of that, the only built-in commands are AND, OR and NOT, and you make th
 
 The three logic gates are represented like so:
 
-`a&b`: AND of `a` and `b`.
-`a?b`: OR of `a` and `b`.
-`!a`: NOT of `a`.
+- `a&b`: AND of `a` and `b`.
+- `a?b`: OR of `a` and `b`.
+- `!a`: NOT of `a`.
 
 You can make extra things from these commands, like circuits and variables.
 
