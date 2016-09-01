@@ -1,4 +1,5 @@
 import sys
+from random import randint
 
 # File access and creation
 code_name = raw_input("File: ")
@@ -16,11 +17,12 @@ code = (logicode_file.read()).split("\n")
 circuits = []
 circuit_names = []
 
-replace_dict = {"&": " and ", "!": " not ", "?": " or "}
+replace_dict = {"&": " and ", "!": " not ", "?": " or ", "*": "randint(0,1)"}
 
 variables = {}
 
 output = []
+
 
 def parse_circ(string):
     out_code = string
@@ -29,7 +31,6 @@ def parse_circ(string):
         for a in range(len(circuits)):
             if circuits[a][0] in out_code:
                 circ_find_char = out_code.find(circuits[a][0])
-
                 # Bracket matching checker
                 index = circ_find_char + len(circuits[a][0]) + 1
                 brace_check = 1
@@ -39,7 +40,6 @@ def parse_circ(string):
                     elif out_code[index] == ")":
                         brace_check -= 1
                     index += 1
-
                 out_args = out_code[circ_find_char + len(circuits[a][0]) + 1:index - 1].split(",")
                 for b in range(len(out_args)):
                     out_args[b] = "(" + out_args[b] + ")"
@@ -48,7 +48,8 @@ def parse_circ(string):
                 for c in range(len(circuits[a][1])):
                     temp = temp.replace(circuits[a][1][c], out_args[c])
         out_code = out_code[:circ_co_ords[0]] + temp + out_code[circ_co_ords[1]:]
-    return out_code
+    return "(" + out_code + ")"
+
 
 def lgc_process(index):
     # Output
