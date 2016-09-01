@@ -33,6 +33,13 @@ To create a variable:
 
 `var` is the variable declaration.
 
+###Conditions
+To create a condition:
+
+`cond arg->{executed if arg = 1}/{executed if arg = 0}`
+
+`cond` is the variable declaration, `arg` is either a value of `0` or `1`, and the `/` is the separator of the two executing strings.
+
 ##I/O
 
 ###Output
