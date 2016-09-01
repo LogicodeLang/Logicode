@@ -17,7 +17,7 @@ code = (logicode_file.read()).split("\n")
 circuits = []
 circuit_names = []
 
-replace_dict = {"&": " and ", "!": " not ", "?": " or ", "*": "randint(0,1)"}
+replace_dict = {"&": " and ", "!": " not ", "|": " or ", "?": "randint(0,1)"}
 
 variables = {}
 
