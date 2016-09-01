@@ -11,6 +11,10 @@ The three logic gates are represented like so:
 - `a?b`: OR of `a` and `b`.
 - `!a`: NOT of `a`.
 
+There are more built-ins:
+
+- `*`: Random bit, either `0` or `1`.
+
 You can make extra things from these commands, like circuits and variables.
 
 ##Make-your-own Things
