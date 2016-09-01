@@ -1,0 +1,2 @@
+circ rep(a)->rep(a)
+cond 0->out rep(a)/out 0
