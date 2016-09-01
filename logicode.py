@@ -48,7 +48,9 @@ def parse_circ(string):
                 for c in range(len(circuits[a][1])):
                     temp = temp.replace(circuits[a][1][c], out_args[c])
         out_code = out_code[:circ_co_ords[0]] + temp + out_code[circ_co_ords[1]:]
-    return "(" + out_code + ")"
+        for d in replace_dict:
+            out_code = out_code.replace(d, replace_dict[d])
+    return out_code
 
 
 def lgc_process(index):
@@ -64,17 +66,13 @@ def lgc_process(index):
                     raw_code = raw_code[:var_co_ords] + str(variables[d]) + raw_code[var_co_ords + len(d):]
 
         # Looking for circuits
-        raw_code = parse_circ(raw_code)
-        for e in replace_dict:
-            raw_code = raw_code.replace(e, replace_dict[e])
+        raw_code = "(" + parse_circ(raw_code) + ")"
         output.append(str(int(eval(raw_code))))
 
     # Variables
     elif code[index][:3] == "var":
         var_info = code[index][4:].split("=")
         var_info[1] = parse_circ(var_info[1])
-        for f in replace_dict:
-            var_info[1] = var_info[1].replace(f, replace_dict[f])
         variables[var_info[0]] = int(eval(var_info[1]))
 
     # Circuits
@@ -86,6 +84,17 @@ def lgc_process(index):
         args = split_code[0][1].split(",")
         circuits.append([circuit_name, args, split_code[1]])
         circuit_names.append(circuit_name)
+        
+    elif code[index][:4] == "cond":
+        cond_split_code = code[index].split("->")
+        cond_split_code[0] = int(parse_circ(cond_split_code[0][5:]))
+        conditions = cond_split_code[1].split("/")
+        if cond_split_code[0] == 1:
+            code[index] = conditions[0]
+            lgc_process(index)
+        else:
+            code[index] = conditions[1]
+            lgc_process(index)
 
 for g in range(len(code)):
     lgc_process(g)
