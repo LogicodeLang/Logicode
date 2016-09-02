@@ -42,7 +42,8 @@ def parse_circ(string):
                     code_index += 1
                 out_args = out_code[circ_find_char + len(circuits[a][0]) + 1:code_index - 1].split(",")
                 for b in range(len(out_args)):
-                    out_args[b] = "(" + out_args[b] + ")"
+                    if out_args[b] != "":
+                        out_args[b] = "(" + out_args[b] + ")"
                 circ_co_ords = [circ_find_char, code_index]
                 temp = circuits[a][2]
                 for c in range(len(circuits[a][1])):
@@ -51,7 +52,7 @@ def parse_circ(string):
     return out_code
 
 
-def replace_string(string):
+def rep_str(string):
     replace_out_code = string
     for d in replace_dict:
         replace_out_code = replace_out_code.replace(d, replace_dict[d])
@@ -64,6 +65,18 @@ def concat(string):
     for e in concat_out_code:
         out_list.append(str(int(eval(e))))
     return out_list
+
+
+def find_in(string):
+    input_out_code = string
+    while "input" in input_out_code:
+        input_co_ords = input_out_code.find("input")
+        new_input = raw_input()
+        if new_input in ["0", "1"]:
+            input_out_code = input_out_code[:input_co_ords] + new_input + input_out_code[input_co_ords + 5:]
+        else:
+            sys.exit()
+    return input_out_code
 
 
 def lgc_process(index):
@@ -81,13 +94,13 @@ def lgc_process(index):
                     raw_code = raw_code[:var_co_ords] + str(variables[e]) + raw_code[var_co_ords + len(e):]
 
         # Looking for circuits
-        raw_code = concat(replace_string(parse_circ(raw_code)))
+        raw_code = concat(find_in(rep_str(parse_circ(raw_code))))
         output.append("".join(raw_code))
 
     # Variables
     elif code[index][:3] == "var":
         var_info = code[index][4:].split("=")
-        var_info[1] = concat(replace_string(parse_circ(var_info[1])))
+        var_info[1] = concat(find_in(rep_str(parse_circ(var_info[1]))))
         variables[var_info[0]] = int("".join(var_info[1]))
 
     # Circuits
@@ -103,7 +116,7 @@ def lgc_process(index):
     # Conditions
     elif code[index][:4] == "cond":
         cond_split_code = code[index].split("->")
-        cond_split_code[0] = int(eval(replace_string(parse_circ(cond_split_code[0][5:]))))
+        cond_split_code[0] = int(eval(rep_str(parse_circ(cond_split_code[0][5:]))))
         conditions = cond_split_code[1].split("/")
         if cond_split_code[0] == 1:
             code[index] = conditions[0]
