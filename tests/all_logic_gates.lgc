@@ -1,0 +1,16 @@
+circ g()->0
+circ g(a,b)->a&b
+circ g(a,b)->a&(!b)
+circ g(a)->a
+circ g(a,b)->(!a)&b
+circ g(a,b)->b
+circ g(a,b)->(!(a&b))&(a|b)
+circ g(a,b)->a|b
+circ g(a,b)->!(a|b)
+circ g(a,b)->!((!(a&b))&(a|b))
+circ g(a,b)->!b
+circ g(a,b)->(!a)|b
+circ g(a)->!a
+circ g(a,b)->a|(!b)
+circ g(a,b)->!(a,b)
+circ g()->1
