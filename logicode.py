@@ -94,17 +94,13 @@ def lgc_process(index):
                     raw_code = raw_code[:var_co_ords] + str(variables[e]) + raw_code[var_co_ords + len(e):]
 
         # Looking for circuits
-        out_funcs = ["concat", "find_in", "rep_str", "parse_circ"][::-1]
-        for out_func in out_funcs:
-            raw_code = eval(out_func + "(raw_code)")
+        raw_code = concat(find_in(rep_str(parse_circ(raw_code))))
         output.append("".join(raw_code))
 
     # Variables
     elif code[index][:3] == "var":
         var_info = code[index][4:].split("=")
-        var_funcs = ["concat", "find_in", "rep_str", "parse_circ"][::-1]
-        for var_func in var_funcs:
-            var_info[1] = eval(var_func + "(var_info[1])")
+        var_info[1] = concat(find_in(rep_str(parse_circ(var_info[1]))))
         variables[var_info[0]] = int("".join(var_info[1]))
 
     # Circuits
@@ -132,5 +128,5 @@ def lgc_process(index):
 if __name__ == "__main__":
     for f in range(len(code)):
         lgc_process(f)
-
+    
     print("".join(output))
