@@ -31,7 +31,7 @@ def parse_circ(string):
         for a in range(len(circuits)):
             if circuits[a][0] in out_code:
                 circ_find_char = out_code.find(circuits[a][0])
-                # Bracket matching checker
+                # () matching checker
                 code_index = circ_find_char + len(circuits[a][0]) + 1
                 brace_check = 1
                 while brace_check != 0:
@@ -71,7 +71,7 @@ def find_in(string):
     input_out_code = string
     while "input" in input_out_code:
         input_co_ords = input_out_code.find("input")
-        new_input = raw_input()
+        new_input = raw_input(">>> ")
         if new_input in ["0", "1"]:
             input_out_code = input_out_code[:input_co_ords] + new_input + input_out_code[input_co_ords + 5:]
         else:
@@ -94,13 +94,17 @@ def lgc_process(index):
                     raw_code = raw_code[:var_co_ords] + str(variables[e]) + raw_code[var_co_ords + len(e):]
 
         # Looking for circuits
-        raw_code = concat(find_in(rep_str(parse_circ(raw_code))))
+        out_funcs = ["concat", "find_in", "rep_str", "parse_circ"][::-1]
+        for out_func in out_funcs:
+            raw_code = eval(out_func + "(raw_code)")
         output.append("".join(raw_code))
 
     # Variables
     elif code[index][:3] == "var":
         var_info = code[index][4:].split("=")
-        var_info[1] = concat(find_in(rep_str(parse_circ(var_info[1]))))
+        var_funcs = ["concat", "find_in", "rep_str", "parse_circ"][::-1]
+        for var_func in var_funcs:
+            var_info[1] = eval(var_func + "(var_info[1])")
         variables[var_info[0]] = int("".join(var_info[1]))
 
     # Circuits
@@ -125,7 +129,8 @@ def lgc_process(index):
             code[index] = conditions[1]
             lgc_process(index)
 
-for f in range(len(code)):
-    lgc_process(f)
+if __name__ == "__main__":
+    for f in range(len(code)):
+        lgc_process(f)
 
-print("".join(output))
+    print("".join(output))
