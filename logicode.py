@@ -9,8 +9,9 @@ if not hasattr(__builtins__, 'raw_input'):
 if not hasattr(__builtins__, 'basestring'):
     __builtins__.basestring = str
 
+
 class Scope:
-    def __init__(self, parent = {}):
+    def __init__(self, parent={}):
         self.parent = parent
         self.lookup = {}
 
@@ -27,7 +28,7 @@ class Scope:
         if key in self.lookup:
             self.lookup[key] = value
         elif key in self.parent:
-                self.parent[key] = value
+            self.parent[key] = value
         else:
             self.lookup[key] = value
 
@@ -48,6 +49,7 @@ class Scope:
 
     def delete(self, key):
         del self[key]
+
 
 def Inject(scope, keys, values):
     for key, value in zip(keys, values):
@@ -82,45 +84,102 @@ grammars = {
     "Random": [rRandom],
     "Input": [rInput],
     "Literal": [["|", "Input", "Bits", "Name", "Random"]],
-    "Arguments": [rOpenParenthesis, ["?", rName, ["*", rComma, rName]], rCloseParenthesis],
-    "Call Arguments": [rOpenParenthesis, ["?", "Literal", ["*", rComma, "Literal"]], rCloseParenthesis],
-    "Alpha": [["|", ["1", rPrefix, "Expression"], ["1", "Name", "Call Arguments"], ["1", rOpenParenthesis, "Expression", rCloseParenthesis], "Literal"]],
-    "Expression": [["|", ["1", "Alpha", rPlus, "Expression"], ["1", "Alpha", rInfix, "Expression"], ["1", rPrefix, "Expression"], ["1", "Alpha", rPostfix], ["1", "Name", "Call Arguments"], ["1", rOpenParenthesis, "Expression", rCloseParenthesis], "Literal"]],
+    "Arguments": [
+        rOpenParenthesis,
+        ["?", rName, ["*", rComma, rName]],
+        rCloseParenthesis
+    ],
+    "Call Arguments": [
+        rOpenParenthesis,
+        ["?", "Literal", ["*", rComma, "Literal"]],
+        rCloseParenthesis
+    ],
+    "Alpha": [
+        [
+            "|",
+            ["1", rPrefix, "Expression"],
+            ["1", "Name", "Call Arguments"],
+            ["1", rOpenParenthesis, "Expression", rCloseParenthesis],
+            "Literal"
+        ]
+    ],
+    "Expression": [
+        [
+            "|",
+            ["1", "Alpha", rPlus, "Expression"],
+            ["1", "Alpha", rInfix, "Expression"],
+            ["1", rPrefix, "Expression"],
+            ["1", "Alpha", rPostfix],
+            ["1", "Name", "Call Arguments"],
+            ["1", rOpenParenthesis, "Expression", rCloseParenthesis],
+            "Literal"
+        ]
+    ],
     "Circuit": [rCircuit, rName, "Arguments", rLambda, "Expression"],
     "Variable": [rVariable, rName, rEquals, "Expression"],
-    "Condition": [rCondition, "Name", rLambda, ["|", "Circuit", "Variable", "Condition", "Out"], rOr, ["|", "Circuit", "Variable", "Condition", "Out"]],
+    "Condition": [
+        rCondition,
+        "Expression",
+        rLambda,
+        ["|", "Variable", "Out"],
+        rOr,
+        ["|", "Variable", "Out"]
+    ],
     "Out": [rOut, "Expression"],
     "Comment": [rComment],
-    "Program": [["+", ["|", "Circuit", "Variable", "Condition", "Out", "Comment", rNewlines]]]
+    "Program": [
+        [
+            "+",
+            [
+                "|",
+                "Circuit",
+                "Variable",
+                "Condition",
+                "Out",
+                "Comment",
+                rNewlines
+            ]
+        ]
+    ]
 }
+
 
 def Noop(argument):
     return argument
+
 
 def Bits(result):
     value = list(map(lambda char: int(char), result[0]))
     return lambda scope: value
 
+
 def Name(result):
     return lambda scope: scope[result[0]]
 
+
 def Random(result):
-    return lambda scope: [randint(0,1)]
+    return lambda scope: [randint(0, 1)]
+
 
 def Input(result):
     return lambda scope: [GetInput(scope)]
 
+
 def Literal(result):
     return [result]
+
 
 def Arguments(result):
     arguments = result[1]
     if len(arguments):
         arguments = arguments[0]
-        while isinstance(arguments, list) and isinstance(arguments[-1], list) and len(arguments[-1][0]) == 2:
+        while (isinstance(arguments, list) and
+               isinstance(arguments[-1], list) and
+               len(arguments[-1][0]) == 2):
             last = arguments[-1]
             arguments = arguments[:-1] + [last[0][1]]
     return lambda scope: arguments
+
 
 def Expression(result):
     length = len(result)
@@ -132,21 +191,35 @@ def Expression(result):
     result = result[0][0]
     length = len(result)
     if length == 3:
-        if isinstance(result[0], basestring) and rOpenParenthesis.match(result[0]):
+        if (
+            isinstance(result[0], basestring) and
+            rOpenParenthesis.match(result[0])
+        ):
             return result[1]
         operator = result[1]
         if isinstance(operator, basestring) and rPlus.match(operator):
             return lambda scope: result[0](scope) + result[2](scope)
         if isinstance(operator, basestring) and rInfix.match(operator):
             if operator == "&":
-                return lambda scope: list(map(op.and_, result[0](scope), result[2](scope)))
+                return lambda scope: list(map(
+                    op.and_,
+                    result[0](scope),
+                    result[2](scope)
+                ))
             if operator == "|":
-                return lambda scope: list(map(op.or_, result[0](scope), result[2](scope)))
+                return lambda scope: list(map(
+                    op.or_,
+                    result[0](scope),
+                    result[2](scope)
+                ))
     if length == 2:
         operator = result[0]
         if isinstance(operator, basestring) and rPrefix.match(operator):
             if operator == "!":
-                return lambda scope: list(map(int, map(op.not_, result[1](scope))))
+                return lambda scope: list(map(int, map(
+                    op.not_,
+                    result[1](scope)
+                )))
         operator = result[1]
         if isinstance(operator, basestring) and rPostfix.match(operator):
             if operator == "[h]":
@@ -156,34 +229,53 @@ def Expression(result):
         # Function call
         name = result[0]
         args = result[1]
-        return lambda scope: name(scope)(list(map(lambda arg: arg[0][0](scope), args(scope))))
+        return lambda scope: name(scope)(list(map(
+            lambda arg: arg[0][0](scope),
+            args(scope)
+        )))
     if length == 1:
         return result[0]
+
 
 def Circuit(result):
     name = result[1]
     arguments = result[2]
     expression = result[4]
-    return lambda scope: scope.set(name, lambda args: expression(Inject(Scope(scope), arguments(scope), args)))
+    return lambda scope: scope.set(
+        name,
+        lambda args: expression(Inject(Scope(scope), arguments(scope), args))
+    )
+
 
 def Variable(result):
     name = result[1]
     value = result[3]
     return lambda scope: scope.set(name, value(scope))
 
+
 def Condition(result):
     condition = result[1]
     if_true = result[3]
     if_false = result[5]
-    return lambda scope: if_true(scope) if condition(scope) else if_false(scope)
+    return lambda scope: (
+        if_true(scope) if
+        condition(scope)[0] else
+        if_false(scope)
+    )
+
 
 def Out(result):
     return lambda scope: Print(result[1](scope))
 
+
 def GetInput(scope):
     if not len(scope["input"]):
-        scope["input"] = list(map(int, filter(lambda c: c == "0" or c == "1", raw_input("Input: "))))[::-1]
+        scope["input"] = list(map(int, filter(
+            lambda c: c == "0" or c == "1",
+            raw_input("Input: ")
+        )))[::-1]
     return scope["input"].pop()
+
 
 def Print(result):
     print("".join(list(map(str, result))))
@@ -216,7 +308,8 @@ maxes = {
     "+": -1
 }
 
-#lastCode = ""
+# lastCode = ""
+
 
 def get(code, token):
     length = 0
@@ -226,10 +319,10 @@ def get(code, token):
         string = match.group()
         length += len(string)
         code = code[length:]
-    #global lastCode
-    #if lastCode != code:
-    #    print("code", code)
-    #    lastCode = code
+    # global lastCode
+    # if lastCode != code:
+    #     print("code", code)
+    #     lastCode = code
     if isinstance(token, list):
         first = token[0]
         rest = token[1:]
@@ -277,7 +370,7 @@ def get(code, token):
             gottenLength = gotten[1]
             code = code[gottenLength:]
             length += gottenLength
-        #return (result, length)
+        # return (result, length)
         return (transform.get(token, Noop)(result), length)
     if isinstance(token, re._pattern_type):
         match = token.match(code)
@@ -286,18 +379,23 @@ def get(code, token):
             return (string, len(string) + length)
         return (None, 0)
 
+
 def run(code, input="", grammar="Program"):
     scope = Scope()
-    scope["input"] = list(map(int, filter(lambda c: c == "0" or c == "1", input)))[::-1]
+    scope["input"] = list(map(int, filter(
+        lambda c: c == "0" or c == "1",
+        input
+    )))[::-1]
     result = get(code, "Program")[0]
-    #print(astify(result))
+    # print(astify(result))
     if result:
         program = result[0]
-        #print("program", program)
+        # print("program", program)
         for statement in program:
             function = statement[0]
             if hasattr(function, '__call__'):
                 function(scope)
+
 
 def astify(parsed, padding=""):
     result = ""
@@ -309,10 +407,13 @@ def astify(parsed, padding=""):
     else:
         return padding + str(parsed) + "\n"
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process some integers.")
-    parser.add_argument("-f", "--file", type=str, nargs='*', default="", help="File path of the program.")
-    parser.add_argument("-i", "--input", type=str, nargs=1, default="", help="Input to the program.")
+    parser.add_argument("-f", "--file", type=str, nargs='*', default="",
+                        help="File path of the program.")
+    parser.add_argument("-i", "--input", type=str, nargs=1, default="",
+                        help="Input to the program.")
     argv = parser.parse_args()
     if len(argv.file):
         code = ""
@@ -333,6 +434,6 @@ if __name__ == "__main__":
             run(raw_input("Enter program: "), argv.input[0])
         else:
             run(raw_input("Enter program: "))
-        #code = get(input("Enter program: "), "Program")[0]
-        #print(result)
-        #print(astify(result))
+        # code = get(input("Enter program: "), "Program")[0]
+        # print(result)
+        # print(astify(result))
