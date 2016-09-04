@@ -56,17 +56,18 @@ def Inject(scope, keys, values):
 
 rWhitespace = re.compile(r"[ \t]+", re.M)
 rNewlines = re.compile(r"[\r\n]+", re.M)
-rName = re.compile(r"[A-Z_$]+", re.I)
-rBit = re.compile(r"[01]")
 rBits = re.compile(r"[01]+")
+rName = re.compile(r"(?!\binput\b)[A-Z_$]+", re.I)
+rRandom = re.compile(r"\?")
+rInput = re.compile(r"\binput\b")
 rInfix = re.compile(r"[&|]")
 rPrefix = re.compile(r"!")
 rPostfix = re.compile(r"\[[ht]\]")
 rOpenParenthesis = re.compile(r"\(")
 rCloseParenthesis = re.compile(r"\)")
-rCircuit = re.compile(r"circ ")
-rVariable = re.compile(r"var ")
-rCondition = re.compile(r"cond ")
+rCircuit = re.compile(r"\bcirc\b")
+rVariable = re.compile(r"\bvar\b")
+rCondition = re.compile(r"\bcond\b")
 rOut = re.compile(r"out ")
 rComment = re.compile(r"#.+")
 rLambda = re.compile(r"->")
@@ -74,21 +75,20 @@ rOr = re.compile(r"/")
 rComma = re.compile(r",")
 rEquals = re.compile(r"=")
 rPlus = re.compile(r"\+")
-rRandom = re.compile(r"\?")
 
 grammars = {
-	"Bit": [rBit],
 	"Bits": [rBits],
 	"Name": [rName],
 	"Random": [rRandom],
-	"Literal": [["|", "Bits", "Name", "Random"]],
+	"Input": [rInput],
+	"Literal": [["|", "Input", "Bits", "Name", "Random"]],
 	"Arguments": [rOpenParenthesis, ["?", rName, ["*", rComma, rName]], rCloseParenthesis],
 	"Call Arguments": [rOpenParenthesis, ["?", "Literal", ["*", rComma, "Literal"]], rCloseParenthesis],
-	"Alpha": [["|", ["1", rPrefix, "Expression"], ["1", "Name", "Arguments"], ["1", rOpenParenthesis, "Expression", rCloseParenthesis], "Literal"]],
+	"Alpha": [["|", ["1", rPrefix, "Expression"], ["1", "Name", "Call Arguments"], ["1", rOpenParenthesis, "Expression", rCloseParenthesis], "Literal"]],
 	"Expression": [["|", ["1", "Alpha", rPlus, "Expression"], ["1", "Alpha", rInfix, "Expression"], ["1", rPrefix, "Expression"], ["1", "Alpha", rPostfix], ["1", "Name", "Call Arguments"], ["1", rOpenParenthesis, "Expression", rCloseParenthesis], "Literal"]],
 	"Circuit": [rCircuit, rName, "Arguments", rLambda, "Expression"],
 	"Variable": [rVariable, rName, rEquals, "Expression"],
-	"Condition": [rCondition, rName, rLambda, "Expression", rOr, "Expression"],
+	"Condition": [rCondition, rName, rLambda, ["|", "Expression", "Out"], rOr, ["|", "Expression", "Out"]],
 	"Out": [rOut, "Expression"],
 	"Comment": [rComment],
 	"Program": [["+", ["|", "Circuit", "Variable", "Condition", "Out", "Comment", rNewlines]]]
@@ -104,11 +104,14 @@ def Bits(result):
 def Name(result):
 	return lambda scope: scope[result[0]]
 
-def Literal(result):
-	return [result]
-
 def Random(result):
 	return lambda scope: [randint(0,1)]
+
+def Input(result):
+	return lambda scope: [GetInput(scope)]
+
+def Literal(result):
+	return [result]
 
 def Arguments(result):
 	arguments = result[1]
@@ -169,12 +172,17 @@ def Variable(result):
 	return lambda scope: scope.set(name, value(scope))
 
 def Condition(result):
-	if_true = result[3]
-	if_false = result[5]
+	if_true = result[3][0]
+	if_false = result[5][0]
 	return lambda scope: lambda condition: if_true(scope) if condition else if_false(scope)
 
 def Out(result):
 	return lambda scope: Print(result[1](scope))
+
+def GetInput(scope):
+	if not len(scope["input"]):
+		scope["input"] = list(map(int, filter(lambda c: c == "0" or c == "1", raw_input("Input: "))))[::-1]
+	return scope["input"].pop()
 
 def Print(result):
 	print("".join(list(map(str, result))))
@@ -182,8 +190,9 @@ def Print(result):
 transform = {
 	"Bits": Bits,
 	"Name": Name,
-	"Literal": Literal,
 	"Random": Random,
+	"Input": Input,
+	"Literal": Literal,
 	"Arguments": Arguments,
 	"Call Arguments": Arguments,
 	"Alpha": Expression,
@@ -273,11 +282,12 @@ def get(code, token):
 		match = token.match(code)
 		if match:
 			string = match.group()
-			return (string, len(string))
+			return (string, len(string) + length)
 		return (None, 0)
 
-def run(code, grammar="Program"):
+def run(code, input="", grammar="Program"):
 	scope = Scope()
+	scope["input"] = list(map(int, filter(lambda c: c == "0" or c == "1", input)))[::-1]
 	result = get(code, "Program")[0]
 	#print(astify(result))
 	if result:
@@ -302,6 +312,8 @@ if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description="Process some integers.")
 	parser.add_argument("-f", "--file", type=str, nargs='*', default="",
 											help="File path of the program.")
+	parser.add_argument("-i", "--input", type=str, nargs=1, default="",
+											help="Input to the program.")
 	argv = parser.parse_args()
 	if len(argv.file):
 		code = ""
@@ -312,9 +324,16 @@ if __name__ == "__main__":
 			else:
 				with open(argv.file[0] + ".lgc") as file:
 					code += file.read()
-		run(code)
+		if argv.input:
+			run(code, argv.input[0])
+		else:
+			run(code)
 	else:
 		run(raw_input("Enter program: "))
+		if argv.input:
+			run(raw_input("Enter program: "), argv.input[0])
+		else:
+			run(raw_input("Enter program: "))
 		#code = get(input("Enter program: "), "Program")[0]
 		#print(result)
 		#print(astify(result))
