@@ -9,6 +9,15 @@ if not hasattr(__builtins__, 'raw_input'):
 if not hasattr(__builtins__, 'basestring'):
     __builtins__.basestring = str
 
+rLinestart = re.compile("^", re.M)
+rGetParentFunctionName = re.compile("<function ([^.]+)")
+
+def getParentFunctionName(lambda_function):
+    return rGetParentFunctionName.match(repr(lambda_function)).group(1)
+
+def islambda(v):
+  LAMBDA = lambda:0
+  return isinstance(v, type(LAMBDA)) and v.__name__ == LAMBDA.__name__
 
 class Scope:
     def __init__(self, parent={}):
@@ -38,6 +47,23 @@ class Scope:
         else:
             del self.parent[key]
 
+    def __repr__(self):
+        string = "{"
+        for key in self.lookup:
+            value = self.lookup[key]
+            string += "%s: %s" % (key,
+                (getParentFunctionName(value) if
+                    islambda(value) else
+                    "".join(list(map(str, value))) if
+                        isinstance(value, list) else
+                        repr(value))
+            )
+            string += ", "
+        string = string[:-2] + "}"
+        return (string +
+            "\n" +
+            rLinestart.sub("    ", repr(self.parent)))
+
     def has(self, key):
         return key in self
 
@@ -59,9 +85,10 @@ def Inject(scope, keys, values):
 rWhitespace = re.compile(r"[ \t]+", re.M)
 rNewlines = re.compile(r"[\r\n]+", re.M)
 rBits = re.compile(r"[01]+")
-rName = re.compile(r"(?!\binput\b)[A-Z_$]+", re.I)
+rName = re.compile(r"(?!\binput\b|\b__scope__\b)[a-zA-Z_$]+")
 rRandom = re.compile(r"\?")
 rInput = re.compile(r"\binput\b")
+rScope = re.compile(r"\b__scope__\b")
 rInfix = re.compile(r"[&|]")
 rPrefix = re.compile(r"!")
 rPostfix = re.compile(r"\[[ht]\]")
@@ -84,7 +111,8 @@ grammars = {
     "Name": [rName],
     "Random": [rRandom],
     "Input": [rInput],
-    "Literal": [["|", "Input", "Bits", "Name", "Random"]],
+    "Scope": [rScope],
+    "Literal": [["|", "Input", "Scope", "Bits", "Name", "Random"]],
     "Arguments": [
         rOpenParenthesis,
         ["?", rName, ["*", rComma, rName]],
@@ -138,7 +166,8 @@ grammars = {
                 "Condition",
                 "Out",
                 "Comment",
-                "Newlines"
+                "Newlines",
+                "Expression"
             ]
         ]
     ]
@@ -168,6 +197,10 @@ def Random(result):
 
 def Input(result):
     return lambda scope: [GetInput(scope)]
+
+
+def ScopeTransform(result):
+    return lambda scope: Print(repr(scope))
 
 
 def Literal(result):
@@ -286,7 +319,8 @@ def GetInput(scope):
 
 
 def Print(result):
-    print("".join(list(map(str, result))))
+    if result:
+        print("".join(list(map(str, result))))
 
 transform = {
     "Newlines": NoLambda,
@@ -294,6 +328,7 @@ transform = {
     "Name": Name,
     "Random": Random,
     "Input": Input,
+    "Scope": ScopeTransform,
     "Literal": Literal,
     "Arguments": Arguments,
     "Call Arguments": Arguments,
@@ -327,7 +362,7 @@ def NoTransform(token, argument):
     return argument
 
 
-def get(code, token, process=Transform):
+def Get(code, token, process=Transform):
     length = 0
     match = rWhitespace.match(code)
     if match:
@@ -339,7 +374,7 @@ def get(code, token, process=Transform):
         rest = token[1:]
         if first == "|":
             for token in rest:
-                result = get(code, token, process)
+                result = Get(code, token, process)
                 if result[0] != None:
                     return (result[0], result[1] + length)
             return (None, 0)
@@ -355,7 +390,7 @@ def get(code, token, process=Transform):
             tokens = []
             success = True
             for token in rest:
-                gotten = get(code, token, process)
+                gotten = Get(code, token, process)
                 if gotten[0] == None:
                     success = False
                     break
@@ -374,7 +409,7 @@ def get(code, token, process=Transform):
         result = []
         grammar = grammars[token]
         for tok in grammar:
-            gotten = get(code, tok, process)
+            gotten = Get(code, tok, process)
             if gotten[0] == None:
                 return (None, 0)
             result += [gotten[0]]
@@ -390,22 +425,29 @@ def get(code, token, process=Transform):
         return (None, 0)
 
 
-def Run(code, input="", astify=False, grammar="Program"):
-    scope = Scope()
+def Run(code="", input="", astify=False, grammar="Program", repl=False, scope=None):
+    if not scope:
+        scope = Scope()
+    if repl:
+        while repl:
+            try:
+                Print(Run(raw_input("Logicode> "), scope=scope))
+            except (KeyboardInterrupt, EOFError):
+                return
     scope["input"] = list(map(int, filter(
         lambda c: c == "0" or c == "1",
         input
     )))[::-1]
     if astify:
-        result = get(code, grammar, NoTransform)[0]
+        result = Get(code, grammar, NoTransform)[0]
         print(Astify(result))
         return
-    result = get(code, grammar)[0]
+    result = Get(code, grammar)[0]
     if result:
         program = result[0]
         for statement in program:
-            function = statement[0]
-            statement[0](scope)
+            result = statement[0](scope)
+        return result
 
 
 def Astify(parsed, padding=""):
@@ -427,17 +469,22 @@ if __name__ == "__main__":
                         help="Code of the program.")
     parser.add_argument("-i", "--input", type=str, nargs="?", default="",
                         help="Input to the program.")
-    parser.add_argument("-a", "--astify", action="store_true")
+    parser.add_argument("-a", "--astify", action="store_true",
+                        help="Print AST instead of interpreting.")
+    parser.add_argument("-r", "--repl", action="store_true",
+                        help="Open as REPL instead of interpreting.")
     argv = parser.parse_args()
-    if len(argv.file):
+    if argv.repl:
+        Run(repl=True)
+    elif len(argv.file):
         code = ""
         for path in argv.file:
             if os.path.isfile(argv.file[0]):
                 with open(argv.file[0]) as file:
-                    code += file.read()
+                    code += file.read() + "\n"
             else:
                 with open(argv.file[0] + ".lgc") as file:
-                    code += file.read()
+                    code += file.read() + "\n"
         if argv.astify:
             Run(code, "", True)
         elif argv.input:
@@ -452,9 +499,10 @@ if __name__ == "__main__":
         else:
             Run(code)
     else:
+        code = raw_input("Enter program: ")
         if argv.astify:
-            Run(raw_input("Enter program: "), "", True)
+            Run(code, "", True)
         elif argv.input:
-            Run(raw_input("Enter program: "), argv.input[0])
+            Run(code, argv.input[0])
         else:
-            Run(raw_input("Enter program: "))
+            Run(code)
