@@ -71,7 +71,7 @@ rCircuit = re.compile(r"\bcirc\b")
 rVariable = re.compile(r"\bvar\b")
 rCondition = re.compile(r"\bcond\b")
 rOut = re.compile(r"out ")
-rComment = re.compile(r"#.+")
+rComment = re.compile(r"#.*")
 rLambda = re.compile(r"->")
 rOr = re.compile(r"/")
 rComma = re.compile(r",")
@@ -79,6 +79,7 @@ rEquals = re.compile(r"=")
 rPlus = re.compile(r"\+")
 
 grammars = {
+    "Newlines": [rNewlines],
     "Bits": [rBits],
     "Name": [rName],
     "Random": [rRandom],
@@ -137,7 +138,7 @@ grammars = {
                 "Condition",
                 "Out",
                 "Comment",
-                rNewlines
+                "Newlines"
             ]
         ]
     ]
@@ -146,6 +147,10 @@ grammars = {
 
 def Noop(argument):
     return argument
+
+
+def NoLambda(result):
+    return lambda scope: None
 
 
 def Bits(result):
@@ -175,9 +180,12 @@ def Arguments(result):
         arguments = arguments[0]
         while (isinstance(arguments, list) and
                isinstance(arguments[-1], list) and
+               len(arguments[-1]) and
                len(arguments[-1][0]) == 2):
             last = arguments[-1]
             arguments = arguments[:-1] + [last[0][1]]
+    if len(arguments) and not len(arguments[-1]):
+        arguments = arguments[:-1]
     return lambda scope: arguments
 
 
@@ -281,6 +289,7 @@ def Print(result):
     print("".join(list(map(str, result))))
 
 transform = {
+    "Newlines": NoLambda,
     "Bits": Bits,
     "Name": Name,
     "Random": Random,
@@ -293,7 +302,8 @@ transform = {
     "Circuit": Circuit,
     "Variable": Variable,
     "Condition": Condition,
-    "Out": Out
+    "Out": Out,
+    "Comment": NoLambda
 }
 
 mins = {
@@ -308,29 +318,30 @@ maxes = {
     "+": -1
 }
 
-# lastCode = ""
+
+def Transform(token, argument):
+    return (transform.get(token, Noop)(argument[0]), argument[1])
 
 
-def get(code, token):
+def NoTransform(token, argument):
+    return argument
+
+
+def get(code, token, process=Transform):
     length = 0
-    # jump whitespace
     match = rWhitespace.match(code)
     if match:
         string = match.group()
         length += len(string)
         code = code[length:]
-    # global lastCode
-    # if lastCode != code:
-    #     print("code", code)
-    #     lastCode = code
     if isinstance(token, list):
         first = token[0]
         rest = token[1:]
         if first == "|":
             for token in rest:
-                result = get(code, token)
+                result = get(code, token, process)
                 if result[0] != None:
-                    return result
+                    return (result[0], result[1] + length)
             return (None, 0)
         minN = mins.get(first, first)
         maxN = maxes.get(first, first)
@@ -344,7 +355,7 @@ def get(code, token):
             tokens = []
             success = True
             for token in rest:
-                gotten = get(code, token)
+                gotten = get(code, token, process)
                 if gotten[0] == None:
                     success = False
                     break
@@ -363,15 +374,14 @@ def get(code, token):
         result = []
         grammar = grammars[token]
         for tok in grammar:
-            gotten = get(code, tok)
+            gotten = get(code, tok, process)
             if gotten[0] == None:
                 return (None, 0)
             result += [gotten[0]]
             gottenLength = gotten[1]
             code = code[gottenLength:]
             length += gottenLength
-        # return (result, length)
-        return (transform.get(token, Noop)(result), length)
+        return process(token, (result, length))
     if isinstance(token, re._pattern_type):
         match = token.match(code)
         if match:
@@ -380,29 +390,30 @@ def get(code, token):
         return (None, 0)
 
 
-def run(code, input="", grammar="Program"):
+def Run(code, input="", astify=False, grammar="Program"):
     scope = Scope()
     scope["input"] = list(map(int, filter(
         lambda c: c == "0" or c == "1",
         input
     )))[::-1]
-    result = get(code, "Program")[0]
-    # print(astify(result))
+    if astify:
+        result = get(code, grammar, NoTransform)[0]
+        print(Astify(result))
+        return
+    result = get(code, grammar)[0]
     if result:
         program = result[0]
-        # print("program", program)
         for statement in program:
             function = statement[0]
-            if hasattr(function, '__call__'):
-                function(scope)
+            statement[0](scope)
 
 
-def astify(parsed, padding=""):
+def Astify(parsed, padding=""):
     result = ""
     if isinstance(parsed, list):
         padding += " "
         for part in parsed:
-            result += astify(part, padding)
+            result += Astify(part, padding)
         return result
     else:
         return padding + str(parsed) + "\n"
@@ -410,10 +421,13 @@ def astify(parsed, padding=""):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process some integers.")
-    parser.add_argument("-f", "--file", type=str, nargs='*', default="",
+    parser.add_argument("-f", "--file", type=str, nargs="*", default="",
                         help="File path of the program.")
-    parser.add_argument("-i", "--input", type=str, nargs=1, default="",
+    parser.add_argument("-c", "--code", type=str, nargs="?", default="",
+                        help="Code of the program.")
+    parser.add_argument("-i", "--input", type=str, nargs="?", default="",
                         help="Input to the program.")
+    parser.add_argument("-a", "--astify", action="store_true")
     argv = parser.parse_args()
     if len(argv.file):
         code = ""
@@ -424,16 +438,23 @@ if __name__ == "__main__":
             else:
                 with open(argv.file[0] + ".lgc") as file:
                     code += file.read()
-        if argv.input:
-            run(code, argv.input[0])
+        if argv.astify:
+            Run(code, "", True)
+        elif argv.input:
+            Run(code, argv.input)
         else:
-            run(code)
+            Run(code)
+    elif argv.code:
+        if argv.astify:
+            Run(argv.code, "", True)
+        elif argv.input:
+            Run(argv.code, argv.input)
+        else:
+            Run(code)
     else:
-        run(raw_input("Enter program: "))
-        if argv.input:
-            run(raw_input("Enter program: "), argv.input[0])
+        if argv.astify:
+            Run(raw_input("Enter program: "), "", True)
+        elif argv.input:
+            Run(raw_input("Enter program: "), argv.input[0])
         else:
-            run(raw_input("Enter program: "))
-        # code = get(input("Enter program: "), "Program")[0]
-        # print(result)
-        # print(astify(result))
+            Run(raw_input("Enter program: "))
