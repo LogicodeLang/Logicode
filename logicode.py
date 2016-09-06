@@ -9,6 +9,8 @@ if not hasattr(__builtins__, "raw_input"):
 if not hasattr(__builtins__, "basestring"):
     basestring = str
 
+regex = re._pattern_type
+
 rWhitespace = re.compile(r"[ \t]+", re.M)
 rNewlines = re.compile(r"[\r\n]+", re.M)
 rBits = re.compile(r"[01]+")
@@ -74,11 +76,10 @@ def Arguments(result):
     arguments = result[1]
     if len(arguments):
         arguments = arguments[0]
-        while (isinstance(arguments, list) and isinstance(arguments[-1], list) and len(arguments[-1])
+        if (isinstance(arguments, list) and isinstance(arguments[-1], list) and len(arguments[-1])
                and len(arguments[-1][0]) == 2):
-            last = arguments[-1]
-            arguments = arguments[:-1] + [last[0][1]]
-    if len(arguments) and not len(arguments[-1]):
+            arguments = arguments[:-1] + list(map(lambda l: l[1], arguments[1]))
+    if len(arguments) and isinstance(arguments[-1], list) and not len(arguments[-1]):
         arguments = arguments[:-1]
     return lambda scope: arguments
 
@@ -117,7 +118,7 @@ def Expression(result):
         # Function call
         name = result[0]
         args = result[1]
-        return lambda scope: name(scope)(list(map(lambda arg: arg[0][0](scope), args(scope))))
+        return lambda scope: name(scope)(list(map(lambda arg: arg(scope), args(scope))))
     if length == 1:
         return result[0]
 
@@ -237,7 +238,7 @@ grammars = {
     ],
     "Call Arguments": [
         rOpenParenthesis,
-        ["?", "Literal", ["*", rComma, "Literal"]],
+        ["?", "Expression", ["*", rComma, "Expression"]],
         rCloseParenthesis
     ],
     "Term": [
@@ -351,6 +352,7 @@ def Get(code, token, process=Transform):
         string = match.group()
         length += len(string)
         code = code[length:]
+
     if isinstance(token, list):
         first = token[0]
         rest = token[1:]
@@ -383,6 +385,7 @@ def Get(code, token, process=Transform):
         if amount < minN:
             return (None, 0)
         return (result, length)
+
     if isinstance(token, basestring):
         result = []
         grammar = grammars[token]
@@ -395,7 +398,8 @@ def Get(code, token, process=Transform):
             code = code[gottenLength:]
             length += gottenLength
         return process(token, (result, length))
-    if isinstance(token, re._pattern_type):
+
+    if isinstance(token, regex):
         match = token.match(code)
         if match:
             string = match.group()
@@ -446,7 +450,7 @@ if __name__ == "__main__":
     parser.add_argument("-t", "--test", action="store_true", help="Run unit tests.")
     argv = parser.parse_args()
     if argv.test:
-        from tests import *
+        from test import *
         RunTests()
     elif argv.repl:
         Run(repl=True)
