@@ -4,10 +4,11 @@ import operator as op
 import argparse
 from random import randint
 
-if not hasattr(__builtins__, 'raw_input'):
-    __builtins__.raw_input = input
-if not hasattr(__builtins__, 'basestring'):
-    __builtins__.basestring = str
+
+if not hasattr(__builtins__, "raw_input"):
+    raw_input = input
+if not hasattr(__builtins__, "basestring"):
+    basestring = str
 
 rLinestart = re.compile("^", re.M)
 rGetParentFunctionName = re.compile("<function ([^.]+)")
@@ -123,10 +124,17 @@ grammars = {
         ["?", "Literal", ["*", rComma, "Literal"]],
         rCloseParenthesis
     ],
+    "Term": [
+        [
+            "|",
+            ["1", rOpenParenthesis, "Expression", rCloseParenthesis],
+            "Literal"
+        ]
+    ],
     "Alpha": [
         [
             "|",
-            ["1", rPrefix, "Expression"],
+            ["1", rPrefix, "Term"],
             ["1", "Name", "Call Arguments"],
             ["1", rOpenParenthesis, "Expression", rCloseParenthesis],
             "Literal"
@@ -135,26 +143,32 @@ grammars = {
     "Expression": [
         [
             "|",
-            ["1", "Alpha", rPlus, "Expression"],
             ["1", "Alpha", rInfix, "Expression"],
-            ["1", rPrefix, "Expression"],
+            ["1", rPrefix, "Term"],
             ["1", "Alpha", rPostfix],
             ["1", "Name", "Call Arguments"],
             ["1", rOpenParenthesis, "Expression", rCloseParenthesis],
             "Literal"
         ]
     ],
-    "Circuit": [rCircuit, rName, "Arguments", rLambda, "Expression"],
-    "Variable": [rVariable, rName, rEquals, "Expression"],
+    "TopLevelExpression": [
+        [
+            "|",
+            ["1", "Expression", rPlus, "TopLevelExpression"],
+            ["1", "Expression"]
+        ]
+    ],
+    "Circuit": [rCircuit, rName, "Arguments", rLambda, "TopLevelExpression"],
+    "Variable": [rVariable, rName, rEquals, "TopLevelExpression"],
     "Condition": [
         rCondition,
-        "Expression",
+        "TopLevelExpression",
         rLambda,
         ["|", "Variable", "Out"],
         rOr,
         ["|", "Variable", "Out"]
     ],
-    "Out": [rOut, "Expression"],
+    "Out": [rOut, "TopLevelExpression"],
     "Comment": [rComment],
     "Program": [
         [
@@ -167,7 +181,7 @@ grammars = {
                 "Out",
                 "Comment",
                 "Newlines",
-                "Expression"
+                "TopLevelExpression"
             ]
         ]
     ]
@@ -332,8 +346,10 @@ transform = {
     "Literal": Literal,
     "Arguments": Arguments,
     "Call Arguments": Arguments,
+    "Term": Expression,
     "Alpha": Expression,
     "Expression": Expression,
+    "TopLevelExpression": Expression,
     "Circuit": Circuit,
     "Variable": Variable,
     "Condition": Condition,
@@ -473,8 +489,13 @@ if __name__ == "__main__":
                         help="Print AST instead of interpreting.")
     parser.add_argument("-r", "--repl", action="store_true",
                         help="Open as REPL instead of interpreting.")
+    parser.add_argument("-t", "--test", action="store_true",
+                        help="Run unit tests.")
     argv = parser.parse_args()
-    if argv.repl:
+    if argv.test:
+        from test import suite, RunTests
+        RunTests()
+    elif argv.repl:
         Run(repl=True)
     elif len(argv.file):
         code = ""
