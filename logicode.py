@@ -12,7 +12,7 @@ if not hasattr(__builtins__, "basestring"):
 regex = re._pattern_type
 
 rWhitespace = re.compile(r"[ \t]+", re.M)
-rNewlines = re.compile(r"[\r\n]+", re.M)
+rCommandSeparator = re.compile(r"[\r\n;]+", re.M)
 rBits = re.compile(r"[01]+")
 rName = re.compile(r"(?!\binput\b|\b__scope__\b)[a-zA-Z_$]+")
 rRandom = re.compile(r"\?")
@@ -23,6 +23,8 @@ rPrefix = re.compile(r"!")
 rPostfix = re.compile(r"\[[ht]\]")
 rOpenParenthesis = re.compile(r"\(")
 rCloseParenthesis = re.compile(r"\)")
+rOpenBracket = re.compile(r"\[")
+rCloseBracket = re.compile(r"\]")
 rCircuit = re.compile(r"\bcirc\b")
 rVariable = re.compile(r"\bvar\b")
 rCondition = re.compile(r"\bcond\b")
@@ -109,12 +111,13 @@ def Expression(result):
         if isinstance(operator, basestring) and rPrefix.match(operator):
             if operator == "!":
                 return lambda scope: list(map(int, map(op.not_, result[1](scope))))
-        operator = result[1]
-        if isinstance(operator, basestring) and rPostfix.match(operator):
-            if operator == "[h]":
-                return lambda scope: [result[0](scope)[0]]
-            if operator == "[t]":
-                return lambda scope: [result[0](scope)[-1]]
+        if isinstance(result[1], list):
+            operator = result[1][0][0]
+            if isinstance(operator, basestring) and rPostfix.match(operator):
+                if operator == "[h]":
+                    return lambda scope: [result[0](scope)[0]]
+                if operator == "[t]":
+                    return lambda scope: [result[0](scope)[-1]]
         # Function call
         name = result[0]
         args = result[1]
@@ -126,8 +129,11 @@ def Expression(result):
 def Circuit(result):
     name = result[1]
     arguments = result[2]
-    expression = result[4]
-    return lambda scope: scope.set(name, lambda args: expression(Inject(Scope(scope), arguments(scope), args)))
+    body = result[4]
+    if isinstance(body, list):
+        expressions = map(lambda l: l[0], body[0][1])
+        body = lambda scope: list(filter(None, map(lambda expression: expression(scope), expressions)))[-1]
+    return lambda scope: scope.set(name, lambda args: body(Inject(Scope(scope), arguments(scope), args)))
 
 
 def Variable(result):
@@ -224,7 +230,7 @@ class Scope:
 
 # Grammars
 grammars = {
-    "Newlines": [rNewlines],
+    "CommandSeparator": [rCommandSeparator],
     "Bits": [rBits],
     "Name": [rName],
     "Random": [rRandom],
@@ -262,7 +268,7 @@ grammars = {
             "|",
             ["1", "Alpha", rInfix, "Expression"],
             ["1", rPrefix, "Term"],
-            ["1", "Alpha", rPostfix],
+            ["1", "Alpha", ["+", rPostfix]],
             ["1", "Name", "Call Arguments"],
             ["1", rOpenParenthesis, "Expression", rCloseParenthesis],
             "Literal"
@@ -275,7 +281,19 @@ grammars = {
             ["1", "Expression"]
         ]
     ],
-    "Circuit": [rCircuit, rName, "Arguments", rLambda, "TopLevelExpression"],
+    "Circuit": [
+        rCircuit,
+        rName,
+        "Arguments",
+        rLambda,
+        [
+            "|",
+            "TopLevelExpression",
+            "Variable",
+            "Out",
+            ["1", rOpenBracket, ["+", ["|", "CommandSeparator", "Variable", "Out", "TopLevelExpression"]], rCloseBracket]
+        ]
+    ],
     "Variable": [rVariable, rName, rEquals, "TopLevelExpression"],
     "Condition": [
         rCondition,
@@ -290,14 +308,14 @@ grammars = {
     "Program": [
         [
             "+",
-            ["|", "Circuit", "Variable", "Condition", "Out", "Comment", "Newlines", "TopLevelExpression"]
+            ["|", "CommandSeparator", "Comment", "Circuit", "Variable", "Condition", "Out", "TopLevelExpression"]
         ]
     ]
 }
 
 # Transforming grammars to functions
 transform = {
-    "Newlines": NoLambda,
+    "CommandSeparator": NoLambda,
     "Bits": Bits,
     "Name": Name,
     "Random": Random,
