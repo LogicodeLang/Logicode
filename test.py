@@ -22,6 +22,11 @@ class Test(unittest.TestCase):
     def test_plus(self):
         self.assertEqual(Run("1+1"), [1, 1])
         self.assertEqual(Run("1&1&1&1+1&1&1&1"), [1, 1])
+        
+    def test_heads_tails(self):
+        self.assertEqual(Run("100[t][t]"), [0])
+        self.assertEqual(Run("100[t]"), [0, 0])
+        self.assertEqual(Run("100[h]"), [1])
 
     def test_parens(self):
         self.assertEqual(Run("((1))"), [1])

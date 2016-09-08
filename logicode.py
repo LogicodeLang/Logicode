@@ -112,12 +112,19 @@ def Expression(result):
             if operator == "!":
                 return lambda scope: list(map(int, map(op.not_, result[1](scope))))
         if isinstance(result[1], list):
-            operator = result[1][0][0]
-            if isinstance(operator, basestring) and rPostfix.match(operator):
+            operators = result[1]
+            start_index = 0
+            head = False
+            for wrapped_operator in operators:
+                operator = wrapped_operator[0]
                 if operator == "[h]":
-                    return lambda scope: [result[0](scope)[0]]
+                    head = True
+                    break
                 if operator == "[t]":
-                    return lambda scope: ["".join(str(x) for x in result[0](scope)[1:])]
+                    start_index += 1
+            if head:
+                return lambda scope: [result[0](scope)[start_index]]
+            return lambda scope: result[0](scope)[start_index:]
         # Function call
         name = result[0]
         args = result[1]
