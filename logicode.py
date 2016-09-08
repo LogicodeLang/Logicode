@@ -291,7 +291,8 @@ grammars = {
             "TopLevelExpression",
             "Variable",
             "Out",
-            ["1", rOpenBracket, ["+", ["|", "CommandSeparator", "Variable", "Out", "TopLevelExpression"]], rCloseBracket]
+            "Condition",
+            ["1", rOpenBracket, ["+", ["|", "CommandSeparator", "Variable", "Out", "Condition", "TopLevelExpression"]], rCloseBracket]
         ]
     ],
     "Variable": [rVariable, rName, rEquals, "TopLevelExpression"],
