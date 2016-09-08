@@ -117,7 +117,7 @@ def Expression(result):
                 if operator == "[h]":
                     return lambda scope: [result[0](scope)[0]]
                 if operator == "[t]":
-                    return lambda scope: [result[0](scope)[-1]]
+                    return lambda scope: ["".join(str(x) for x in result[0](scope)[1:])]
         # Function call
         name = result[0]
         args = result[1]
