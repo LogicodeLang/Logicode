@@ -19,8 +19,8 @@ rRandom = re.compile(r"\?")
 rInput = re.compile(r"\binput\b")
 rScope = re.compile(r"\b__scope__\b")
 rInfix = re.compile(r"[&|]")
-rPrefix = re.compile(r"!")
-rPostfix = re.compile(r"\[[ht]\]")
+rPrefix = re.compile(r"[!$]")
+rPostfix = re.compile(r"[<>]")
 rOpenParenthesis = re.compile(r"\(")
 rCloseParenthesis = re.compile(r"\)")
 rOpenBracket = re.compile(r"\[")
@@ -38,6 +38,17 @@ rPlus = re.compile(r"\+")
 
 rLinestart = re.compile("^", re.M)
 rGetParentFunctionName = re.compile("<function ([^.]+)")
+
+# Utility functions
+
+def Binarify(number):
+    if not number:
+        return [0]
+    result = []
+    while number:
+        result = [number % 2] + result
+        number //= 2
+    return result
 
 # Parser functions
 
@@ -111,16 +122,18 @@ def Expression(result):
         if isinstance(operator, basestring) and rPrefix.match(operator):
             if operator == "!":
                 return lambda scope: list(map(int, map(op.not_, result[1](scope))))
+            if operator == "$":
+                return lambda scope: Binarify(len(result[1](scope)))
         if isinstance(result[1], list):
             operators = result[1]
             start_index = 0
             head = False
             for wrapped_operator in operators:
                 operator = wrapped_operator[0]
-                if operator == "[h]":
+                if operator == "<":
                     head = True
                     break
-                if operator == "[t]":
+                if operator == ">":
                     start_index += 1
             if head:
                 return lambda scope: [result[0](scope)[start_index]]

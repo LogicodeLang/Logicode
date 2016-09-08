@@ -19,14 +19,19 @@ class Test(unittest.TestCase):
         self.assertEqual(Run("!1"), [0])
         self.assertEqual(Run("!0"), [1])
 
+    def test_length(self):
+        self.assertEqual(Run("$1000"), [1, 0, 0])
+        self.assertEqual(Run("$1"), [1])
+        self.assertEqual(Run("$1111111111"), [1, 0, 1, 0])
+
     def test_plus(self):
         self.assertEqual(Run("1+1"), [1, 1])
         self.assertEqual(Run("1&1&1&1+1&1&1&1"), [1, 1])
         
     def test_heads_tails(self):
-        self.assertEqual(Run("100[t][t]"), [0])
-        self.assertEqual(Run("100[t]"), [0, 0])
-        self.assertEqual(Run("100[h]"), [1])
+        self.assertEqual(Run("100>>"), [0])
+        self.assertEqual(Run("100>"), [0, 0])
+        self.assertEqual(Run("100<"), [1])
 
     def test_parens(self):
         self.assertEqual(Run("((1))"), [1])
