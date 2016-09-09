@@ -1,0 +1,93 @@
+%YAML 1.2
+---
+# See http://www.sublimetext.com/docs/3/syntax.html
+file_extensions:
+  - lgc
+scope: source
+variables:
+  identifier: ((?!\binput\b|\b__scope__\b)[a-zA-Z_$]+)
+contexts:
+  main:
+    - match: (\#)
+      scope: punctuation.definition.comment
+      push: comment
+
+    - match: \b(circ)\b
+      scope: keyword.control
+      push: circ
+
+    - match: \b(cond)\b
+      scope: keyword.control
+      push: cond
+
+    - match: \b(out)\b
+      scope: keyword.control
+      push: out
+
+    - match: \b(var)\b
+      scope: storage.type
+      push: var
+
+    - match: \b(input|__scope__)\b
+      scope: keyword.control
+
+    - match: (->)
+      scope: storage.type
+
+    - match: ([&|!<>$=/])
+      scope: keyword.operator
+
+    - match: ({{identifier}}(?=\())
+      scope: entity.name.function
+
+    - include: literal
+
+  literal:
+    - match: \b([01]+)\b
+      scope: constant.numeric
+
+    - match: (\?)
+      scope: constant
+
+  comment:
+    - meta_scope: comment.line
+    - match: $
+      pop: true
+
+  circ:
+    - match: ( +)
+      set: circ2
+
+  circ2:
+    - match: \b{{identifier}}\b
+      scope: entity.name.function
+      set: circ3
+
+  circ3:
+    - match: (\()
+      set: arguments
+
+  arguments:
+    - match: \b{{identifier}}\b
+      scope: variable.parameter.function
+      set: arguments_alpha
+    - match: (\))
+      pop: true
+
+  arguments_alpha:
+    - match: (,[ \t]*)
+      set: arguments
+    - match: (\))
+      pop: true
+
+  cond:
+    - match: ( +)
+      pop: true
+
+  out:
+    - match: ( +)
+      pop: true
+
+  var:
+    - match: ( +)
+      pop: true
