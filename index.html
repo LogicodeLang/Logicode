@@ -1,1 +1,138 @@
-<h1>Welcome to Logicode!</h1>
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="UTF-8">
+    <title>Logicode by testitem</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+  </head>
+  <body>
+    <section class="page-header">
+      <h1 class="project-name">Logicode</h1>
+      <h2 class="project-tagline">An esoteric language based on logic gates.</h2>
+      <a href="https://github.com/testitem/Logicode" class="btn">View on GitHub</a>
+      <a href="https://github.com/testitem/Logicode/zipball/master" class="btn">Download .zip</a>
+      <a href="https://github.com/testitem/Logicode/tarball/master" class="btn">Download .tar.gz</a>
+    </section>
+
+    <section class="main-content">
+      <h1>
+<a id="logicode" class="anchor" href="#logicode" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Logicode</h1>
+
+<p>Welcome to Logicode!</p>
+
+<p>Logicode is a minimalistic language that is mainly based on Logisim.</p>
+
+<p>Because of that, the only built-in commands are AND, OR and NOT, and you make the rest.</p>
+
+<p>The three logic gates are represented like so:</p>
+
+<ul>
+<li>
+<code>a&amp;b</code>: AND of <code>a</code> and <code>b</code>.</li>
+<li>
+<code>a|b</code>: OR of <code>a</code> and <code>b</code>.</li>
+<li>
+<code>!a</code>: NOT of <code>a</code>.</li>
+</ul>
+
+<p>There are more built-ins:</p>
+
+<ul>
+<li>
+<code>?</code>: Random bit, either <code>0</code> or <code>1</code>.</li>
+<li>
+<code>#</code>: Begins a line for comments.</li>
+</ul>
+
+<p>You can make extra things from these commands, like circuits and variables.</p>
+
+<h2>
+<a id="make-your-own-things" class="anchor" href="#make-your-own-things" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Make-your-own Things</h2>
+
+<h3>
+<a id="circuits" class="anchor" href="#circuits" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Circuits</h3>
+
+<p>To create a circuit, you have to do this:</p>
+
+<p><code>circ circuit_name(arg1, arg2...)-&gt;{what the function does}</code></p>
+
+<p><code>circ</code> is the circuit "declaration", and everything after the <code>-&gt;</code> is interpreted as code. </p>
+
+<p>Normal circuits have 1 bit as output, but if more bits are required, use the <code>+</code> symbol to separate bits.</p>
+
+<p>Like this:</p>
+
+<p><code>circ circuit_name(arg1, arg2...)-&gt;{1st bit}+{2nd bit}+...</code></p>
+
+<h3>
+<a id="variables" class="anchor" href="#variables" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Variables</h3>
+
+<p>To create a variable:</p>
+
+<p><code>var var_name=value</code></p>
+
+<p><code>var</code> is the variable declaration.</p>
+
+<h3>
+<a id="conditions" class="anchor" href="#conditions" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Conditions</h3>
+
+<p>To create a condition:</p>
+
+<p><code>cond arg-&gt;{executed if arg = 1}/{executed if arg = 0}</code></p>
+
+<p><code>cond</code> is the variable declaration, <code>arg</code> is either a value of <code>0</code> or <code>1</code>, and the <code>/</code> is the separator of the two executing strings.</p>
+
+<h2>
+<a id="io" class="anchor" href="#io" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>I/O</h2>
+
+<h3>
+<a id="output" class="anchor" href="#output" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Output</h3>
+
+<p>There is also output as well:</p>
+
+<p><code>out out_value</code></p>
+
+<p><code>out</code> is the output declaration, and you can include the built-in commands, as well as self-made circuits, into the output to be processed.</p>
+
+<h2>
+<a id="example-code" class="anchor" href="#example-code" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Example code:</h2>
+
+<pre><code>circ xor(a,b)-&gt;(!(a&amp;b))&amp;(a|b)
+var test=xor(1,1)
+out !(test)
+
+Output: 1
+</code></pre>
+
+<p>The circuit <code>xor</code> calculates the XOR of two bits, and <code>test</code> is declared as the XOR of 1 and 1 (which is 0). </p>
+
+<p>Then, the <code>out</code> outputs the NOT of <code>test</code>, which is <code>1</code>.</p>
+
+<p>Expanding on the previous example:</p>
+
+<pre><code>circ xor(a,b)-&gt;(!(a&amp;b))&amp;(a|b)
+circ ha(a,b)-&gt;(a&amp;b)+(xor(a,b))
+out ha(1,?)
+
+Output: 10
+</code></pre>
+
+<p>The circuit <code>xor</code> is the same as before, and the circuit <code>ha</code> is a half-adder of two bits (so it takes two arguments), and outputs two bits.</p>
+
+<p>The <code>out</code> outputs the half-adding of <code>1</code> and <code>?</code>, which is either <code>01</code> or <code>10</code> (depending on what the <code>?</code> gives).</p>
+
+      <footer class="site-footer">
+        <span class="site-footer-owner"><a href="https://github.com/testitem/Logicode">Logicode</a> is maintained by <a href="https://github.com/testitem">testitem</a>.</span>
+
+        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
+      </footer>
+
+    </section>
+
+  
+  </body>
+</html>
