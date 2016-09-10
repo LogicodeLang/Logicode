@@ -185,7 +185,7 @@ def Out(result):
 
 def GetInput(scope):
     if not len(scope["input"]):
-        scope["input"] = list(map(int, filter(lambda c: c == "0" or c == "1", raw_input("Input: "))))[::-1]
+        scope["input"] = [list(map(int, filter(lambda c: c == "0" or c == "1", raw_input("Input: "))))]
     return scope["input"].pop()
 
 
@@ -465,7 +465,7 @@ def Run(code="", input="", astify=False, grammar="Program", repl=False, scope=No
                 Print(Run(raw_input("Logicode> "), scope=scope))
             except (KeyboardInterrupt, EOFError):
                 return
-    scope["input"] = list(map(int, filter(lambda c: c == "0" or c == "1", input)))[::-1]
+    scope["input"] = list(map(lambda i: list(map(int, filter(lambda c: c == "0" or c == "1", i))), input.split("\n")[::-1]))
     if astify:
         result = Get(code, grammar, NoTransform)[0]
         print(Astify(result))
