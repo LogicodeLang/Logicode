@@ -28,7 +28,7 @@ rCloseBracket = re.compile(r"\]")
 rCircuit = re.compile(r"\bcirc\b")
 rVariable = re.compile(r"\bvar\b")
 rCondition = re.compile(r"\bcond\b")
-rOut = re.compile(r"out ")
+rOut = re.compile(r"\bout\b")
 rComment = re.compile(r"#.*")
 rLambda = re.compile(r"->")
 rOr = re.compile(r"/")
@@ -82,7 +82,7 @@ def Random(result):
 
 
 def Input(result):
-    return lambda scope: [GetInput(scope)]
+    return lambda scope: GetInput(scope)
 
 
 def ScopeTransform(result):
@@ -239,6 +239,8 @@ class Scope:
                  if isinstance(value, list) else repr(value)))
             string += ", "
         string = string[:-2] + "}"
+        if string == "}":
+            string = "{}"
         return (string +
             "\n" +
             rLinestart.sub("    ", repr(self.parent)))
@@ -465,7 +467,7 @@ def Run(code="", input="", astify=False, grammar="Program", repl=False, scope=No
                 Print(Run(raw_input("Logicode> "), scope=scope))
             except (KeyboardInterrupt, EOFError):
                 return
-    scope["input"] = list(map(lambda i: list(map(int, filter(lambda c: c == "0" or c == "1", i))), input.split("\n")[::-1]))
+    scope["input"] = list(map(lambda i: list(map(int, filter(lambda c: c == "0" or c == "1", i))), filter(None, input.split("\n")[::-1])))
     if astify:
         result = Get(code, grammar, NoTransform)[0]
         print(Astify(result))
