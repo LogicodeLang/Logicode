@@ -8,12 +8,16 @@ class Test(unittest.TestCase):
         self.assertEqual(Run("1&0"), [0])
         self.assertEqual(Run("0&1"), [0])
         self.assertEqual(Run("0&0"), [0])
+        self.assertEqual(Run("101&1"), [0, 0, 1])
+        self.assertEqual(Run("001&1"), [0, 0, 1])
 
     def test_or(self):
         self.assertEqual(Run("1|1"), [1])
         self.assertEqual(Run("1|0"), [1])
         self.assertEqual(Run("0|1"), [1])
         self.assertEqual(Run("0|0"), [0])
+        self.assertEqual(Run("101|1"), [1, 0, 1])
+        self.assertEqual(Run("001|10"), [0, 1, 1])
 
     def test_not(self):
         self.assertEqual(Run("!1"), [0])
@@ -23,6 +27,10 @@ class Test(unittest.TestCase):
         self.assertEqual(Run("$1000"), [1, 0, 0])
         self.assertEqual(Run("$1"), [1])
         self.assertEqual(Run("$1111111111"), [1, 0, 1, 0])
+
+    def test_reverse(self):
+        self.assertEqual(Run("~1"), [1])
+        self.assertEqual(Run("~0101"), [1, 0, 1, 0])
 
     def test_plus(self):
         self.assertEqual(Run("1+1"), [1, 1])

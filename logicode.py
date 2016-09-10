@@ -19,7 +19,7 @@ rRandom = re.compile(r"\?")
 rInput = re.compile(r"\binput\b")
 rScope = re.compile(r"\b__scope__\b")
 rInfix = re.compile(r"[&|]")
-rPrefix = re.compile(r"[!$]")
+rPrefix = re.compile(r"[!$~]")
 rPostfix = re.compile(r"[<>]")
 rOpenParenthesis = re.compile(r"\(")
 rCloseParenthesis = re.compile(r"\)")
@@ -49,6 +49,14 @@ def Binarify(number):
         result = [number % 2] + result
         number //= 2
     return result
+
+def And(left, right):
+    length = max(len(left), len(right))
+    return list(map(op.and_, [0] * (length - len(left)) + left, [0] * (length - len(right)) + right))
+
+def Or(left, right):
+    length = max(len(left), len(right))
+    return list(map(op.or_, [0] * (length - len(left)) + left, [0] * (length - len(right)) + right))
 
 # Parser functions
 
@@ -114,9 +122,9 @@ def Expression(result):
             return lambda scope: result[0](scope) + result[2](scope)
         if isinstance(operator, basestring) and rInfix.match(operator):
             if operator == "&":
-                return lambda scope: list(map(op.and_, result[0](scope), result[2](scope)))
+                return lambda scope: And(result[0](scope), result[2](scope))
             if operator == "|":
-                return lambda scope: list(map(op.or_, result[0](scope), result[2](scope)))
+                return lambda scope: Or(result[0](scope), result[2](scope))
     if length == 2:
         operator = result[0]
         if isinstance(operator, basestring) and rPrefix.match(operator):
@@ -124,6 +132,8 @@ def Expression(result):
                 return lambda scope: list(map(int, map(op.not_, result[1](scope))))
             if operator == "$":
                 return lambda scope: Binarify(len(result[1](scope)))
+            if operator == "~":
+                return lambda scope: list(result[1](scope)[::-1])
         if isinstance(result[1], list):
             operators = result[1]
             start_index = 0
