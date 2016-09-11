@@ -276,13 +276,13 @@ grammars = {
     ],
     "Call Arguments": [
         rOpenParenthesis,
-        ["?", "Expression", ["*", rComma, "Expression"]],
+        ["?", "TopLevelExpression", ["*", rComma, "TopLevelExpression"]],
         rCloseParenthesis
     ],
     "Term": [
         [
             "|",
-            ["1", rOpenParenthesis, "Expression", rCloseParenthesis],
+            ["1", rOpenParenthesis, "TopLevelExpression", rCloseParenthesis],
             "Literal"
         ]
     ],
@@ -291,7 +291,7 @@ grammars = {
             "|",
             ["1", rPrefix, "Term"],
             ["1", "Name", "Call Arguments"],
-            ["1", rOpenParenthesis, "Expression", rCloseParenthesis],
+            ["1", rOpenParenthesis, "TopLevelExpression", rCloseParenthesis],
             "Literal"
         ]
     ],
@@ -302,7 +302,7 @@ grammars = {
             ["1", rPrefix, "Term"],
             ["1", "Alpha", ["+", rPostfix]],
             ["1", "Name", "Call Arguments"],
-            ["1", rOpenParenthesis, "Expression", rCloseParenthesis],
+            ["1", rOpenParenthesis, "TopLevelExpression", rCloseParenthesis],
             "Literal"
         ]
     ],
