@@ -8,20 +8,20 @@ class Test(unittest.TestCase):
         self.assertEqual(Run("1&0"), [0])
         self.assertEqual(Run("0&1"), [0])
         self.assertEqual(Run("0&0"), [0])
-        self.assertEqual(Run("101&1"), [0, 0, 1])
-        self.assertEqual(Run("001&1"), [0, 0, 1])
 
     def test_or(self):
         self.assertEqual(Run("1|1"), [1])
         self.assertEqual(Run("1|0"), [1])
         self.assertEqual(Run("0|1"), [1])
         self.assertEqual(Run("0|0"), [0])
-        self.assertEqual(Run("101|1"), [1, 0, 1])
-        self.assertEqual(Run("001|10"), [0, 1, 1])
 
     def test_not(self):
         self.assertEqual(Run("!1"), [0])
         self.assertEqual(Run("!0"), [1])
+
+    def test_plus(self):
+        self.assertEqual(Run("1+1"), [1, 1])
+        self.assertEqual(Run("1&1&1&1+1&1&1&1"), [1, 1])
 
     def test_length(self):
         self.assertEqual(Run("$1000"), [1, 0, 0])
@@ -32,10 +32,6 @@ class Test(unittest.TestCase):
         self.assertEqual(Run("~1"), [1])
         self.assertEqual(Run("~0101"), [1, 0, 1, 0])
 
-    def test_plus(self):
-        self.assertEqual(Run("1+1"), [1, 1])
-        self.assertEqual(Run("1&1&1&1+1&1&1&1"), [1, 1])
-        
     def test_heads_tails(self):
         self.assertEqual(Run("100>>"), [0])
         self.assertEqual(Run("100>"), [0, 0])
@@ -44,6 +40,17 @@ class Test(unittest.TestCase):
     def test_parens(self):
         self.assertEqual(Run("((1))"), [1])
         self.assertEqual(Run("((1&(1|(!0)))&1)"), [1])
+
+    def test_nests(self):
+        self.assertEqual(Run("!(1&1)&(1&0)"), [0])
+
+    def test_chains(self):
+        self.assertEqual(Run("1&1&1&1"), [1])
+        self.assertEqual(Run("1&1&1&0"), [0])
+
+    def test_multdigits(self):
+        self.assertEqual(Run("11&11"), [1, 1])
+        self.assertEqual(Run("!((00|10)&10)"), [0, 1])
 
     def test_circs(self):
         self.assertEqual(Run("circ a()->1\na()"), [1])
@@ -55,16 +62,10 @@ class Test(unittest.TestCase):
         self.assertEqual(Run("var foo=1\nfoo"), [1])
         self.assertEqual(Run("var foo=11\nfoo"), [1, 1])
 
-    def test_nests(self):
-        self.assertEqual(Run("!(1&1)&(1&0)"), [0])
-
-    def test_chains(self):
-        self.assertEqual(Run("1&1&1&1"), [1])
-        self.assertEqual(Run("1&1&1&0"), [0])
-
     def test_conds(self):
         self.assertEqual(Run("cond 1->var foo=1/var foo=0\nfoo"), [1])
         self.assertEqual(Run("cond 1&(!1)->var foo=1/var foo=0\nfoo"), [0])
+
 
 suite = unittest.TestLoader().loadTestsFromTestCase(Test)
 
