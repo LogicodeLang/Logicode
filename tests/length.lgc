@@ -1,0 +1,17 @@
+circ trim(n) -> [
+    cond n< -> var trimout = 0 + n / var trimout = trim(n>)
+    trimout
+]
+circ successor(n) -> [
+    cond n -> var temp = ~((~(trim(n)))>) / var temp = 0
+    cond (~n)< -> var succout = successor(temp) + 0 / var succout = temp + 1
+    succout
+]
+circ length(n) -> [
+    cond n -> var length_digit = successor(length_digit) / var string = n
+    cond n -> var string = length(~((~n)>)) / var string = n
+    length_digit>
+]
+var string = trim(input)
+var length_digit = 0
+out length(string)
