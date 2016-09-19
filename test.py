@@ -22,11 +22,10 @@ class Test(unittest.TestCase):
     def test_plus(self):
         self.assertEqual(Run("1+1"), [1, 1])
         self.assertEqual(Run("1&1&1&1+1&1&1&1"), [1, 1])
-
-    def test_length(self):
-        self.assertEqual(Run("$1000"), [1, 0, 0])
-        self.assertEqual(Run("$1"), [1])
-        self.assertEqual(Run("$1111111111"), [1, 0, 1, 0])
+        
+    def test_ascii(self):
+        self.assertEqual(Run("@1001000"), ["H"])
+        self.assertEqual(Run("@111111+@111111"), ["?", "?"])
 
     def test_reverse(self):
         self.assertEqual(Run("~1"), [1])
