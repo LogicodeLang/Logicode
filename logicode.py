@@ -14,9 +14,9 @@ regex = re._pattern_type
 rWhitespace = re.compile(r"[ \t]+", re.M)
 rCommandSeparator = re.compile(r"[\r\n;]+", re.M)
 rBits = re.compile(r"[01]+")
-rName = re.compile(r"(?!\binp\b|\b__scope__\b)[a-zA-Z0-9_$]+")
+rName = re.compile(r"(?!\b[ab]inp\b|\b__scope__\b)[a-zA-Z0-9_$]+")
 rRandom = re.compile(r"\?")
-rInput = re.compile(r"\binp\b")
+rInput = re.compile(r"\b[ab]inp\b")
 rScope = re.compile(r"\b__scope__\b")
 rInfix = re.compile(r"[&|]")
 rPrefix = re.compile(r"[!~@]")
@@ -74,7 +74,7 @@ def Random(result):
 
 
 def Input(result):
-    return lambda scope: GetInput(scope)
+    return lambda scope: GetInput(scope, result[0][0])
 
 
 def ScopeTransform(result):
@@ -175,9 +175,18 @@ def Out(result):
     return lambda scope: Print(result[1](scope))
 
 
-def GetInput(scope):
+def GetInput(scope, inputarg):
     if not len(scope["input"]):
-        scope["input"] = [list(map(int, filter(lambda c: c == "0" or c == "1", raw_input("Input: "))))]
+        if inputarg == "a":
+            temp = list(x for x in raw_input("Input: ") if ord(x) < 256)
+            for a in range(len(temp)):
+                temp[a] = bin(ord(temp[a]))[2:]
+                while len(temp[a]) < 8:
+                    temp[a] = "0" + temp[a]
+            temp = "".join(temp)
+            scope["input"] = [[int(x) for x in temp]]
+        if inputarg == "b":
+            scope["input"] = [list(map(int, filter(lambda c: c == "0" or c == "1", raw_input("Input: "))))]
     return scope["input"].pop()
 
 
