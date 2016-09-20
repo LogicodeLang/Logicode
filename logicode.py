@@ -14,12 +14,12 @@ regex = re._pattern_type
 rWhitespace = re.compile(r"[ \t]+", re.M)
 rCommandSeparator = re.compile(r"[\r\n;]+", re.M)
 rBits = re.compile(r"[01]+")
-rName = re.compile(r"(?!\binput\b|\b__scope__\b)[a-zA-Z_$]+")
+rName = re.compile(r"(?!\b[ab]inp\b|\b__scope__\b)[a-zA-Z0-9_$]+")
 rRandom = re.compile(r"\?")
-rInput = re.compile(r"\binput\b")
+rInput = re.compile(r"\b[ab]inp\b")
 rScope = re.compile(r"\b__scope__\b")
 rInfix = re.compile(r"[&|]")
-rPrefix = re.compile(r"[!$~]")
+rPrefix = re.compile(r"[!~@]")
 rPostfix = re.compile(r"[<>]")
 rOpenParenthesis = re.compile(r"\(")
 rCloseParenthesis = re.compile(r"\)")
@@ -29,6 +29,7 @@ rCircuit = re.compile(r"\bcirc\b")
 rVariable = re.compile(r"\bvar\b")
 rCondition = re.compile(r"\bcond\b")
 rOut = re.compile(r"\bout\b")
+rReturn = re.compile(r"\bret\b")
 rComment = re.compile(r"#.*")
 rLambda = re.compile(r"->")
 rOr = re.compile(r"/")
@@ -40,15 +41,6 @@ rLinestart = re.compile("^", re.M)
 rGetParentFunctionName = re.compile("<function ([^.]+)")
 
 # Utility functions
-
-def Binarify(number):
-    if not number:
-        return [0]
-    result = []
-    while number:
-        result = [number % 2] + result
-        number //= 2
-    return result
 
 def And(left, right):
     length = max(len(left), len(right))
@@ -82,7 +74,7 @@ def Random(result):
 
 
 def Input(result):
-    return lambda scope: GetInput(scope)
+    return lambda scope: GetInput(scope, result[0][0])
 
 
 def ScopeTransform(result):
@@ -130,10 +122,10 @@ def Expression(result):
         if isinstance(operator, basestring) and rPrefix.match(operator):
             if operator == "!":
                 return lambda scope: list(map(int, map(op.not_, result[1](scope))))
-            if operator == "$":
-                return lambda scope: Binarify(len(result[1](scope)))
             if operator == "~":
                 return lambda scope: list(result[1](scope)[::-1])
+            if operator == "@":
+                return lambda scope: list(chr(int("".join(str(x) for x in result[1](scope)), 2) % 256))
         if isinstance(result[1], list):
             operators = result[1]
             start_index = 0
@@ -176,31 +168,43 @@ def Condition(result):
     condition = result[1]
     if_true = result[3]
     if_false = result[5]
-    return lambda scope: (if_true(scope) if condition(scope)[0] else if_false(scope))
+    return lambda scope: if_true(scope) if 1 in condition(scope) else if_false(scope)
 
 
 def Out(result):
     return lambda scope: Print(result[1](scope))
 
 
-def GetInput(scope):
+def GetInput(scope, inputarg):
     if not len(scope["input"]):
-        scope["input"] = [list(map(int, filter(lambda c: c == "0" or c == "1", raw_input("Input: "))))]
+        if inputarg == "a":
+            temp = list(x for x in raw_input("Input: ") if ord(x) < 256)
+            for a in range(len(temp)):
+                temp[a] = bin(ord(temp[a]))[2:]
+                while len(temp[a]) < 8:
+                    temp[a] = "0" + temp[a]
+            temp = "".join(temp)
+            scope["input"] = [[int(x) for x in temp]]
+        if inputarg == "b":
+            scope["input"] = [list(map(int, filter(lambda c: c == "0" or c == "1", raw_input("Input: "))))]
     return scope["input"].pop()
 
 
 def Print(result):
     if result:
         print("".join(list(map(str, result))))
-        
+
+
 # Scope stuff
 
 def getParentFunctionName(lambda_function):
     return rGetParentFunctionName.match(repr(lambda_function)).group(1)
 
+
 def islambda(v):
   LAMBDA = lambda:0
   return isinstance(v, type(LAMBDA)) and v.__name__ == LAMBDA.__name__
+
 
 class Scope:
     def __init__(self, parent={}):
@@ -256,7 +260,7 @@ class Scope:
 
     def delete(self, key):
         del self[key]
-        
+
 
 # Dictionaries:
 
@@ -324,7 +328,11 @@ grammars = {
             "Variable",
             "Out",
             "Condition",
-            ["1", rOpenBracket, ["+", ["|", "CommandSeparator", "Variable", "Out", "Condition", "TopLevelExpression"]], rCloseBracket]
+            [
+                "1", rOpenBracket,
+                ["+", ["|", "CommandSeparator", "Variable", "Out", "Condition", "TopLevelExpression"]],
+                rCloseBracket
+            ]
         ]
     ],
     "Variable": [rVariable, rName, rEquals, "TopLevelExpression"],
@@ -467,7 +475,8 @@ def Run(code="", input="", astify=False, grammar="Program", repl=False, scope=No
                 Print(Run(raw_input("Logicode> "), scope=scope))
             except (KeyboardInterrupt, EOFError):
                 return
-    scope["input"] = list(map(lambda i: list(map(int, filter(lambda c: c == "0" or c == "1", i))), filter(None, input.split("\n")[::-1])))
+    scope["input"] = list(map(lambda i: list(map(int, filter(lambda c: c == "0" or c == "1", i))),
+                          filter(None, input.split("\n")[::-1])))
     if astify:
         result = Get(code, grammar, NoTransform)[0]
         print(Astify(result))
