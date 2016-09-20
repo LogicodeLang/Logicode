@@ -1,0 +1,30 @@
+circ trim(n) -> [
+    cond n< -> var trimout = 0 + n / var trimout = trim(n>)
+    trimout
+]
+circ successor(n) -> [
+    cond n -> var succtemp = ~((~(trim(n)))>) / var succtemp = 0
+    cond (~n)< -> var succout = successor(succtemp) + 0 / var succout = succtemp + 1
+    succout
+]
+circ antisucc(n) -> [
+    cond n -> var antitemp = ~((~(trim(n)))>) / var antitemp = 0
+    cond (~n)< -> var antiout = antitemp + 0 / var antiout = antisucc(antitemp) + 1
+    antiout
+]
+circ add(a, b) -> [
+    var addtemp = a
+    cond b -> var addtemp = add(successor(addtemp), antisucc(b)) / var addtemp = addtemp
+    addtemp
+]
+circ sub(a, b) -> [
+    var subtemp = a
+    cond b -> var subtemp = sub(antisucc(subtemp), antisucc(b)) / var subtemp = subtemp
+    subtemp
+]
+circ mult(a, b) -> [
+    var multtemp = a
+    cond b -> var multtemp = add(mult(a, antisucc(b)), a) / var multtemp = sub(multtemp, a)
+    multtemp
+]
+circ square(a) -> mult(a, a)
