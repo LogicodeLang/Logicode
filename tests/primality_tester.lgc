@@ -1,0 +1,40 @@
+circ bool(n) -> [
+    cond n -> var boolout = 1 / var boolout = 0
+    boolout
+]
+circ trim(n) -> [
+    cond n< -> var trimout = 0 + n / var trimout = trim(n>)
+    trimout
+]
+circ successor(n) -> [
+    cond n -> var succtemp = ~((~(trim(n)))>) / var succtemp = 0
+    cond (~n)< -> var succout = successor(succtemp) + 0 / var succout = succtemp + 1
+    succout
+]
+circ antisucc(n) -> [
+    cond n -> var antitemp = ~((~(trim(n)))>) / var antitemp = 0
+    cond (~n)< -> var antiout = antitemp + 0 / var antiout = antisucc(antitemp) + 1
+    antiout
+]
+circ modsub(a, b) -> [
+    cond bool(a)&bool(b) -> var subtemp = modsub(antisucc(a), antisucc(b)) / var subtemp = a
+    subtemp
+]
+circ lessthan(a, b) -> !(bool(modsub(b, a)))
+circ sub(a, b) -> [
+    cond b -> var subtemp = sub(antisucc(a), antisucc(b)) / var subtemp = a
+    subtemp
+]
+circ modcheck(a, b) -> [
+    cond lessthan(a, b) -> var modout = modcheck(sub(a, b), b) / var modout = !(bool(a))
+    modout
+]
+circ isprime(a) -> [
+    var primecheck = successor(primecheck)
+    cond lessthan(a, primecheck) -> var primeout = primeout + modcheck(a, primecheck) / var primeout = primeout
+    cond lessthan(a, primecheck) -> var filler = isprime(a) / var primeout = primeout
+    !(bool((~primeout)>))
+]
+var primecheck = 1
+var primeout = 0
+out isprime(binp)
