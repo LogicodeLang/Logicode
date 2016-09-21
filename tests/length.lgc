@@ -12,6 +12,6 @@ circ length(n) -> [
     cond n -> var string = length(~((~n)>)) / var string = n
     length_digit>
 ]
-var string = trim(input)
+var string = trim(binp)
 var length_digit = 0
 out length(string)
