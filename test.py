@@ -56,6 +56,8 @@ class Test(unittest.TestCase):
         self.assertEqual(Run("circ a(b)->b\na(1)"), [1])
         self.assertEqual(Run("circ a(b)->b\na(0)"), [0])
         self.assertEqual(Run("circ a(b,c)->b&c\na(0, 1)"), [0])
+        self.assertEqual(Run("circ asdf(n)->cond n->1/0\nasdf(1)"), [1])
+        self.assertEqual(Run("circ asdf(n)->cond n->0/1\nasdf(0)"), [1])
 
     def test_vars(self):
         self.assertEqual(Run("var foo=1\nfoo"), [1])
