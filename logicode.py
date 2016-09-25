@@ -325,12 +325,12 @@ grammars = {
         [
             "|",
             "Condition",
-            "TopLevelExpression",
             "Variable",
+            "TopLevelExpression",
             "Out",
             [
                 "1", rOpenBracket,
-                ["+", ["|", "CommandSeparator", "Condition", "TopLevelExpression", "Variable", "Out"]],
+                ["+", ["|", "CommandSeparator", "Condition", "Variable", "TopLevelExpression", "Out"]],
                 rCloseBracket
             ]
         ]
