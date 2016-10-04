@@ -2,7 +2,10 @@ import os
 import re
 import operator as op
 import argparse
+import sys
 from random import randint
+
+sys.setrecursionlimit(15000)
 
 if not hasattr(__builtins__, "raw_input"):
     raw_input = input
@@ -19,17 +22,17 @@ rRandom = re.compile(r"\?")
 rInput = re.compile(r"\b[ab]inp\b")
 rScope = re.compile(r"\b__scope__\b")
 rInfix = re.compile(r"[&|]")
-rPrefix = re.compile(r"[!~@]")
+rPrefix = re.compile(r"[!~@\*]")
 rPostfix = re.compile(r"[<>]")
 rOpenParenthesis = re.compile(r"\(")
 rCloseParenthesis = re.compile(r"\)")
 rOpenBracket = re.compile(r"\[")
 rCloseBracket = re.compile(r"\]")
+rMultilineCond = re.compile(r"\]/\[")
 rCircuit = re.compile(r"\bcirc\b")
 rVariable = re.compile(r"\bvar\b")
 rCondition = re.compile(r"\bcond\b")
 rOut = re.compile(r"\bout\b")
-rReturn = re.compile(r"\bret\b")
 rComment = re.compile(r"#.*")
 rLambda = re.compile(r"->")
 rOr = re.compile(r"/")
@@ -126,6 +129,8 @@ def Expression(result):
                 return lambda scope: list(result[1](scope)[::-1])
             if operator == "@":
                 return lambda scope: list(chr(int("".join(str(x) for x in result[1](scope)), 2) % 256))
+            if operator == "*":
+                return lambda scope: [1] if 1 in result[1](scope) else [0]
         if isinstance(result[1], list):
             operators = result[1]
             start_index = 0
@@ -159,15 +164,26 @@ def Circuit(result):
 
 
 def Variable(result):
+    length = len(result[2])
     name = result[1]
-    value = result[3]
+    if length:
+        value = result[2][0][1]
+    else:
+        value = lambda n: [0]
     return lambda scope: scope.set(name, value(scope))
 
 
 def Condition(result):
     condition = result[1]
-    if_true = result[3]
-    if_false = result[5]
+    body = result[3][0]
+    if isinstance(body[1], list):
+        expressions_true = map(lambda l: l[0], body[1])
+        expressions_false = map(lambda l: l[0], body[3])
+        if_true = lambda scope: ([None] + list(filter(None, map(lambda expression: expression(scope), expressions_true))))[-1]
+        if_false = lambda scope: ([None] + list(filter(None, map(lambda expression: expression(scope), expressions_false))))[-1]
+    else:
+        if_true = body[0]
+        if_false = body[2]
     return lambda scope: if_true(scope) if 1 in condition(scope) else if_false(scope)
 
 
@@ -202,7 +218,7 @@ def getParentFunctionName(lambda_function):
 
 
 def islambda(v):
-  LAMBDA = lambda:0
+  LAMBDA = lambda: 0
   return isinstance(v, type(LAMBDA)) and v.__name__ == LAMBDA.__name__
 
 
@@ -325,8 +341,8 @@ grammars = {
         [
             "|",
             "Condition",
-            "Variable",
             "TopLevelExpression",
+            "Variable",
             "Out",
             [
                 "1", rOpenBracket,
@@ -335,14 +351,29 @@ grammars = {
             ]
         ]
     ],
-    "Variable": [rVariable, rName, rEquals, "TopLevelExpression"],
+    "Variable": [
+        rVariable, rName,
+        ["?", rEquals, "TopLevelExpression"]
+    ],
     "Condition": [
         rCondition,
         "TopLevelExpression",
         rLambda,
-        ["|", "Variable", "Out", "TopLevelExpression"],
-        rOr,
-        ["|", "Variable", "Out", "TopLevelExpression"]
+        [
+            "|",
+            [
+                "1",
+                ["|", "Variable", "Out", "TopLevelExpression"],
+                rOr,
+                ["|", "Variable", "Out", "TopLevelExpression"]
+            ], [
+                "1", rOpenBracket,
+                ["+", ["|", "CommandSeparator", "Variable", "Out", "TopLevelExpression"]],
+                rMultilineCond,
+                ["+", ["|", "CommandSeparator", "Variable", "Out", "TopLevelExpression"]],
+                rCloseBracket
+            ]
+        ]
     ],
     "Out": [rOut, "TopLevelExpression"],
     "Comment": [rComment],
